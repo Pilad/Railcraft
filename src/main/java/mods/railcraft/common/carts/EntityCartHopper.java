@@ -9,6 +9,8 @@
  -----------------------------------------------------------------------------*/
 package mods.railcraft.common.carts;
 
+import mods.railcraft.common.gui.EnumGui;
+import mods.railcraft.common.util.misc.Game;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityMinecart;
@@ -31,13 +33,11 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import mods.railcraft.common.gui.EnumGui;
-import mods.railcraft.common.util.misc.Game;
-
+@SuppressWarnings("unused")
 public class EntityCartHopper extends CartBaseContainer implements IHopper {
+
     private boolean enabled = true;
     private int transferCooldown = -1;
-    private final BlockPos lastPos = BlockPos.ORIGIN;
 
     public EntityCartHopper(World world) {
         super(world);
@@ -113,37 +113,24 @@ public class EntityCartHopper extends CartBaseContainer implements IHopper {
         super.onUpdate();
 
         if (Game.isHost(worldObj) && !isDead && enabled) {
-            BlockPos blockpos = new BlockPos(this);
-
-            if (blockpos.equals(this.lastPos)) {
-                --this.transferCooldown;
-            } else {
-                this.transferCooldown = 0;
-            }
-
-            if (transferCooldown <= 0) {
-                this.transferCooldown = 0;
-
-                if (this.captureDroppedItems()) {
-                    this.transferCooldown = 4;
-                    this.markDirty();
-                }
+            if (captureDroppedItems()) {
+                this.markDirty();
             }
         }
     }
 
     private boolean captureDroppedItems() {
+        List<EntityItem> list = this.worldObj.getEntitiesWithinAABB(EntityItem.class, this.getEntityBoundingBox().expand(1D, 0.2D, 1D), EntitySelectors.IS_ALIVE);
+        if (!list.isEmpty()) {
+            TileEntityHopper.putDropInInventoryAllSlots(this, list.get(0));
+            return true;
+        }
+
         if (TileEntityHopper.captureDroppedItems(this)) {
             return true;
-        } else {
-            List<EntityItem> list = this.worldObj.getEntitiesWithinAABB(EntityItem.class, this.getEntityBoundingBox().expand(0.25D, 0.0D, 0.25D), EntitySelectors.IS_ALIVE);
-
-            if (!list.isEmpty()) {
-                TileEntityHopper.putDropInInventoryAllSlots(this, list.get(0));
-            }
-
-            return false;
         }
+
+        return false;
     }
 
     @Override
