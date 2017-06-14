@@ -11,6 +11,7 @@ package mods.railcraft.common.carts;
 
 import com.google.common.base.Optional;
 import mods.railcraft.api.carts.IMinecart;
+import mods.railcraft.api.core.items.IPrototypedItem;
 import mods.railcraft.common.plugins.forge.DataManagerPlugin;
 import mods.railcraft.common.util.inventory.InvTools;
 import mods.railcraft.common.util.inventory.PhantomInventory;
@@ -33,14 +34,7 @@ public abstract class CartBaseFiltered extends CartBaseContainer implements IMin
     }
 
     protected CartBaseFiltered(World world, double x, double y, double z) {
-        this(world);
-        setPosition(x, y + getYOffset(), z);
-        motionX = 0.0D;
-        motionY = 0.0D;
-        motionZ = 0.0D;
-        prevPosX = x;
-        prevPosY = y;
-        prevPosZ = z;
+        super(world, x, y, z);
     }
 
     @Override
@@ -51,21 +45,14 @@ public abstract class CartBaseFiltered extends CartBaseContainer implements IMin
 
     @Nullable
     public static ItemStack getFilterFromCartItem(ItemStack cart) {
-        ItemStack filter = InvTools.emptyStack();
-        NBTTagCompound nbt = cart.getTagCompound();
-        if (nbt != null) {
-            NBTTagCompound filterNBT = nbt.getCompoundTag("filterStack");
-            filter = ItemStack.loadItemStackFromNBT(filterNBT);
-        }
-        return filter;
+        if (cart.getItem() instanceof IPrototypedItem)
+            return ((IPrototypedItem) cart.getItem()).getPrototype(cart);
+        return InvTools.emptyStack();
     }
 
     public static ItemStack addFilterToCartItem(ItemStack cart, @Nullable ItemStack filter) {
-        if (!InvTools.isEmpty(filter)) {
-            NBTTagCompound nbt = InvTools.getItemData(cart);
-            NBTTagCompound filterNBT = new NBTTagCompound();
-            filter.writeToNBT(filterNBT);
-            nbt.setTag("filterStack", filterNBT);
+        if (!InvTools.isEmpty(filter) && cart.getItem() instanceof IPrototypedItem) {
+            ((IPrototypedItem) cart.getItem()).setPrototype(cart, filter);
         }
         return cart;
     }
@@ -81,7 +68,7 @@ public abstract class CartBaseFiltered extends CartBaseContainer implements IMin
     @Override
     public void initEntityFromItem(ItemStack stack) {
         super.initEntityFromItem(stack);
-        ItemStack filter = CartBaseFiltered.getFilterFromCartItem(stack);
+        ItemStack filter = getFilterFromCartItem(stack);
         setFilter(filter);
     }
 
